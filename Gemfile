@@ -10,6 +10,7 @@ gem 'turbolinks'
 gem 'jbuilder', '~> 2.0'
 gem 'sdoc', '~> 0.4.0', group: :doc
 gem 'puma', '2.15.3'
+gem 'typhoeus', '~> 0.8.0'
 gem 'taric', :git => 'https://github.com/josephyi/taric.git', :branch => 'rghack2015'
 
 group :development, :test do
