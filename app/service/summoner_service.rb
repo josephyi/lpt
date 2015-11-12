@@ -32,8 +32,8 @@ class SummonerService
 
     @client.ranked_stats(summoner_id: summoner_id, season: season)['champions'].map{ |c|
       ChampionStat.new(champion_id: c['id'],
-                       champion_level: champion_mastery_hash[c['id']].present? ? champion_mastery_hash[c['id']]['championLevel'] : nil,
-                       champion_points: champion_mastery_hash[c['id']].present? ?  champion_mastery_hash[c['id']]['championPoints'] : nil,
+                       champion_level: champion_mastery_hash[c['id']].present? ? champion_mastery_hash[c['id']]['championLevel'] : 0,
+                       champion_points: champion_mastery_hash[c['id']].present? ?  champion_mastery_hash[c['id']]['championPoints'] : 0,
                        ranked_solo_games_played:  c['stats']['rankedSoloGamesPlayed'],
                        ranked_premade_games_played: c['stats']['rankedPremadeGamesPlayed'],
                        total_assists: c['stats']['totalAssists'],
