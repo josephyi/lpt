@@ -39,12 +39,18 @@ class Summoner < ActiveRecord::Base
       end
     end
 
-    total_games = 0
-    total_mastery = 0 # placeholder until total mastery points endpoint is integrated
+    total_games = 0.0
+    total_mastery = 0.0 # placeholder until total mastery points endpoint is integrated
     @stats.each do |champ|
-      total_games += champ.total_sessions_played
-      total_mastery += champ.champion_points
+      if champ.champion_id == 0
+        next
+      else
+        total_games += champ.total_sessions_played
+        total_mastery += champ.champion_points
+      end
     end
+    puts "total games"
+    puts total_games
 
     # Loop only once!
     @stats.each do |champ|
@@ -74,6 +80,7 @@ class Summoner < ActiveRecord::Base
         'games' => champ.total_sessions_played,
         'wins' => champ.total_sessions_won,
         'losses' => champ.total_sessions_lost,
+        'ranked_play_ratio' => champ.total_sessions_played / total_games,
         'play_rate' => calculate_play_rate(champ, total_games, total_mastery),
         'performance' => calculate_performance(champ, total_games, total_mastery)
       }
@@ -100,7 +107,7 @@ class Summoner < ActiveRecord::Base
     rec_champs = calculate_rec_champs(all_champs)
 
     # Assemble player characteristic vector and compare to champs to get new recommended champions
-    rec_new_champs = []
+    rec_new_champs = calculate_rec_new_champs(all_champs)
 
     [most_mastered, top_champs, rec_champs, rec_new_champs, all_champs]
   end
@@ -194,5 +201,16 @@ class Summoner < ActiveRecord::Base
 
     rec_champs.map! { |champ| champ[1] }
     rec_champs
+  end
+
+  def calculate_rec_new_champs(all_champs)
+    # Characterize the player
+
+
+
+    # Compare to champions they don't own
+
+
+    []
   end
 end
