@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151112172253) do
+ActiveRecord::Schema.define(version: 20151112182123) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -47,6 +47,26 @@ ActiveRecord::Schema.define(version: 20151112172253) do
     t.datetime "created_at",    null: false
     t.datetime "updated_at",    null: false
   end
+
+  create_table "match_list_responses", force: :cascade do |t|
+    t.integer  "summoner_id"
+    t.jsonb    "response"
+    t.datetime "created_at",  null: false
+    t.datetime "updated_at",  null: false
+  end
+
+  add_index "match_list_responses", ["response"], name: "index_match_list_responses_on_response", using: :gin
+  add_index "match_list_responses", ["summoner_id"], name: "index_match_list_responses_on_summoner_id", using: :btree
+
+  create_table "match_responses", force: :cascade do |t|
+    t.integer  "match_id"
+    t.jsonb    "response"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  add_index "match_responses", ["match_id"], name: "index_match_responses_on_match_id", using: :btree
+  add_index "match_responses", ["response"], name: "index_match_responses_on_response", using: :gin
 
   create_table "summoners", force: :cascade do |t|
     t.integer  "summoner_id"

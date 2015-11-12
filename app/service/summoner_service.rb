@@ -6,10 +6,10 @@ class SummonerService
   end
 
   def search(summoner_name: )
-    response = @client.summoners_by_names(summoner_names: summoner_name)[summoner_name]
-    persisted = Summoner.where(region: @region.to_s).where(summoner_id: response['id']).first
-    persisted = create_summoner(region: @region.to_s, response: response)  if persisted.nil? && response.present?
-    persisted
+    summoner = find_or_create_summoner(summoner_name: summoner_name, region: @region.to_s)
+    process_match_list(summoner_id: summoner.id)
+
+    summoner
   end
 
   private
@@ -50,6 +50,34 @@ class SummonerService
                        total_sessions_lost: c['stats']['totalSessionsLost'],
                        total_turrets_killed: c['stats']['totalTurretsKilled']
       )
-    } 
+    }
+  end
+
+  def find_or_create_summoner(summoner_name: , region: )
+    response = @client.summoners_by_names(summoner_names: summoner_name)[summoner_name]
+    summoner = Summoner.where(region: region, summoner_id: response['id']).first
+    summoner || create_summoner(region: region, response: response)
+  end
+
+  def process_match_list(summoner_id:)
+    match_list_response = MatchListResponse.find_or_create_by(summoner_id: summoner_id) do |match_list_response|
+      match_list_response.response = @client.match_list(ranked_queues: 'RANKED_SOLO_5x5', seasons: 'SEASON2015', summoner_id: Summoner.find(summoner_id).summoner_id)
+    end
+
+    match_ids = match_list_response.response['matches'].map{|m| m['matchId']}
+    persisted_match_ids = MatchResponse.where(match_id: match_ids).pluck(:match_id)
+    diff_ids = match_ids - persisted_match_ids
+
+    retry_ids = []
+    if diff_ids.present?
+      diff_ids.each do |id|
+        MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue retry_ids << id
+      end
+
+      retry_ids.each do |id|
+        MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue Rails.logger.info "******** #{id}"
+      end
+    end
+
   end
 end
