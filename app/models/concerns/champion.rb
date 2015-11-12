@@ -3,6 +3,7 @@ module Champion
 
   # Current as of Patch 5.16.1
   CHAMPIONS = {
+    "203" => {"name" => "Kindred", "image" => "Kindred.png"},
     "35" => {"name" => "Shaco", "image" => "Shaco.png"},
     "36" => {"name" => "Dr. Mundo", "image" => "DrMundo.png"},
     "33" => {"name" => "Rammus", "image" => "Rammus.png"},

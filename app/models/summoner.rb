@@ -120,10 +120,10 @@ class Summoner < ActiveRecord::Base
     average_performance = 0.0
     all_champs.each do |enum, champ|
       average_games += champ['games']
-      average_performance += champ['performance']
+      average_performance += champ['performance'] * champ['games']
     end
+    average_performance /= average_games
     average_games /= all_champs.length
-    average_performance /= all_champs.length
 
     underplayed_champs = all_champs.find_all { |enum, champ| champ['games'] <= average_games }
     underplayed_champs = underplayed_champs.find_all { |enum, champ| champ['performance'] >= average_performance }
@@ -131,6 +131,8 @@ class Summoner < ActiveRecord::Base
     underplayed_champs.each do |enum, champ|
       champ['label'] = 'underplayed'
     end
+    puts "underplayed"
+    puts underplayed_champs
 
     overplayed_champs = all_champs.find_all { |enum, champ| champ['games'] >= average_games }
     overplayed_champs = overplayed_champs.find_all { |enum, champ| champ['performance'] <= average_performance }
@@ -138,6 +140,8 @@ class Summoner < ActiveRecord::Base
     overplayed_champs.each do |enum, champ|
       champ['label'] = 'overplayed'
     end
+    puts "overplayed"
+    puts overplayed_champs
 
     best_champs = all_champs.find_all { |enum, champ| champ['games'] >= average_games }
     best_champs = best_champs.find_all { |enum, champ| champ['performance'] >= average_performance }
@@ -145,20 +149,29 @@ class Summoner < ActiveRecord::Base
     best_champs.each do |enum, champ|
       champ['label'] = 'best'
     end
+    puts "best"
+    puts best_champs
 
     fallback_champs = all_champs.find_all { |enum, champ| champ['games'] >= 5 }
     fallback_champs = fallback_champs.max_by(3) { |enum, champ| champ['performance'] }
     fallback_champs.each do |enum, champ|
       champ['label'] = 'wellplayed'
     end
+    puts "wellplayed"
+    puts fallback_champs
 
     super_fallback_champs = all_champs.max_by(3) { |enum, champ| champ['performance'] }
     super_fallback_champs.each do |enum, champ|
       champ['label'] = 'new'
     end
+    puts "new"
+    puts super_fallback_champs
 
-    rec_champs = underplayed_champs
+    rec_champs = []
+    rec_champs.concat(underplayed_champs)
+
     case rec_champs.length
+
     when 0
       if overplayed_champs.length == 2
         rec_champs.concat(overplayed_champs.first(2))
@@ -228,6 +241,7 @@ class Summoner < ActiveRecord::Base
       if overplayed_champs.length >= 0
         rec_champs.concat(overplayed_champs)
       end
+
       if rec_champs.length == 2
         if best_champs.length > 0
           rec_champs.push(best_champs.first)
@@ -236,6 +250,7 @@ class Summoner < ActiveRecord::Base
         else
           rec_champs.push(super_fallback_champs.first)
         end
+
       elsif rec_champs.length == 1
         if best_champs.length == 2
           rec_champs.concat(best_champs.first(2))
