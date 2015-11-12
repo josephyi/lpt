@@ -205,12 +205,98 @@ class Summoner < ActiveRecord::Base
 
   def calculate_rec_new_champs(all_champs)
     # Characterize the player
+    tags = ['hi', 'bye']
+    champions = ['1', '2']
+    player = Array.new(tags.length, 0.0)
+    player_champions = []
 
+    all_champs.each do |enum, champ|
+      player_champions.push(champ.champion_id.to_s)
+      champ_tags = self.champion_tags_by_id(champ.champion_id.to_s)
+      champ_tags.each do |tag|
+        player[tags.index(tag)] += champ.games
+      end
+    end
 
+    player = normalize_vector(player)
 
     # Compare to champions they don't own
+    champ_similarities = []
+    champions.each do |champ|
+      if !player_champions.include?(champ)
+        champ_tags = self.champion_tags_by_id(champ)
+        champ_tags.each do |tag|
+          champ_tag_vector[tags.index(tag)] += 1
+        end
+        champ_tag_vector = normalize_vector(champ_tag_vector)
 
+        similarity = dotproduct(player, champ_tag_vector)
+        labels = label_vector(tags, champ_tag_vector)
+        champ_similarities.push([champ, similarity, labels])
+      end
+    end
 
-    []
+    recs = champ_similarities.max_by(3) { |enum, champ| champ[1] }
+
+    rec_new_champs = []
+    recs.each do |rec|
+      rec_champ = {
+        'id' => rec[0],
+        'similarity' => rec[1],
+        'name' => self.champion_name_by_id(rec[0]),
+        'image' => self.champion_image_by_id(rec[1]),
+        'labels' => rec[2]
+      }
+      rec_new_champs.push(rec_champ)
+    end
+
+    rec_new_champs
+  end
+
+  def normalize_vector(vect)
+    euclength_raw = 0.0
+    vect.each { |ele| euclength_raw += ele**2 }
+    euclength = Math.sqrt(euclength_raw)
+
+    if euclength <= 0.0
+      return vect
+    else
+      return vect.map { |ele| ele = ele/euclength }
+    end
+  end
+
+  def dotproduct(vect1, vect2)
+    size = vect1.length
+    sum = 0.0
+    i = 0
+    while i < size
+      sum += vect1[i] * vect2[i]
+      i += 1
+    end
+    sum
+  end
+
+  def label_vector(ref, vect)
+    label_count = 3
+
+    # Protect the input vector
+    vector = vect.dup
+
+    labels = Array.new()
+
+    label_count.times do
+      vectmax = vector.each_with_index.max
+      if vectmax[0] > 0
+        i = vectmax[1]
+
+        labels.push(ref[i])
+
+        vector[i] = 0
+      else
+        break
+      end
+    end
+
+    labels
   end
 end
