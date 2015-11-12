@@ -191,5 +191,9 @@ module Champion
     def tags
       TAGS
     end
+
+    def champions
+      CHAMPIONS.keys
+    end
   end
 end
