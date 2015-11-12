@@ -23,15 +23,17 @@ class SummonerService
                     revision_date: response['revisionDate']
     )
 
-    summoner.champion_stats << build_ranked_stats(summoner_id: response['id'])
+    summoner.champion_stats << build_champ_stats(summoner_id: response['id'])
     summoner.save
   end
 
-  def build_ranked_stats(summoner_id:, season: 'SEASON2015')
-    @client.ranked_stats(summoner_id: summoner_id, season: season)['champions'].map {|c|
+  def build_champ_stats(summoner_id:, season: 'SEASON2015')
+    champion_mastery_hash = Hash[@client.champion_mastery_all(summoner_id: summoner_id).map{|e| [e['championId'], e]}]
+
+    @client.ranked_stats(summoner_id: summoner_id, season: season)['champions'].map{ |c|
       ChampionStat.new(champion_id: c['id'],
-                       champion_level: c['stats']['championLevel'],
-                       champion_points: c['stats']['championPoints'],
+                       champion_level: champion_mastery_hash[c['id']].present? ? champion_mastery_hash[c['id']]['championLevel'] : nil,
+                       champion_points: champion_mastery_hash[c['id']].present? ?  champion_mastery_hash[c['id']]['championPoints'] : nil,
                        ranked_solo_games_played:  c['stats']['rankedSoloGamesPlayed'],
                        ranked_premade_games_played: c['stats']['rankedPremadeGamesPlayed'],
                        total_assists: c['stats']['totalAssists'],
