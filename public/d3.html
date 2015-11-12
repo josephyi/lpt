@@ -1,0 +1,163 @@
+<div class='content' id="plot"></div>
+
+
+<!DOCTYPE html>
+<style>
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #A1CFE9;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+</style>
+
+<script>
+var LPTPlot = (function() {
+
+  var margin = {top: 20, right: 30, bottom: 30, left: 50},
+  width = 560 - margin.left - margin.right,
+  height = 356 - margin.top - margin.bottom;
+
+  var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%SZ").parse;
+
+  var x = d3.time.scale()
+    .range([0, width]);
+
+  var y = d3.scale.linear()
+    .range([height, 0]);
+
+  var color = d3.scale.ordinal()
+    .range(["#ffffff"]);
+
+  var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .ticks(5)
+    .tickFormat(d3.time.format("%H"));
+
+  var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .tickFormat(d3.format("d"));
+
+  var line = d3.svg.line()
+    .x(function(d) { return x(d.time); })
+    .y(function(d) { return y(d.count); });
+
+  var svg;
+
+  var initialize = function () {
+    svg = d3.select("#plot").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")");
+
+    svg.append("g")
+      .attr("class", "y axis")
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("display", "none")
+      .text("Count");
+  };
+
+  var update = function (data) {
+    color.domain(d3.keys(data[0]).filter(function(key) { return key !== "time"; }));
+
+    data.forEach(function(d) {
+        d.time = parseDate(d.time);
+        });
+
+    var eventTypes = color.domain().map(function(name) {
+        return {
+          name: name,
+          values: data.map(function(d) {
+            return {time: d.time, count: +d[name]};
+          })
+        };
+    });
+
+    x.domain(d3.extent(data, function(d) { return d.time; }));
+
+    y.domain([
+      d3.min(eventTypes, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
+      d3.max(eventTypes, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
+    ]);
+
+    // month format for x axis
+    xAxis.ticks(4).tickFormat(d3.time.format("%b %e"));
+
+    svg.select(".x.axis")
+      .call(xAxis);
+
+    svg.select(".y.axis")
+      .call(yAxis);
+
+    var eventType = svg.selectAll(".eventType")
+      .data(eventTypes, function(d) { return d.name; });
+
+    eventType
+      .classed("update", true)
+      .select("path")
+      .transition()
+      .duration(500)
+      .attr("d", function(d) { return line(d.values); });
+
+    eventType.selectAll("text")
+      .transition()
+      .duration(500)
+      .attr("transform", function(d) { return "translate(" + x(d.value.time) + "," + y(d.value.count) + ")"; });
+
+    eventType.enter().append("g")
+      .attr("class", "eventType")
+      .classed("enter", true)
+      .append("path")
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .style("stroke", function(d) { return color(d.name); })
+      .style("opacity", 1e-6)
+      .transition()
+      .duration(500)
+      .style("opacity", 1);
+
+    eventType.selectAll(".enter").append("text")
+      .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
+      .attr("transform", function(d) { return "translate(" + x(d.value.time) + "," + y(d.value.count) + ")"; })
+      .attr("x", 3)
+      .attr("dy", ".35em")
+      .text(function(d) { return d.name; })
+      .style("opacity", 1e-6)
+      .transition()
+      .duration(500)
+      .style("opacity", 1);
+
+    eventType.exit()
+      .classed("exit", true)
+      .transition()
+      .duration(500)
+      .style("opacity", 1e-6)
+      .remove();
+  };
+
+  return {
+    initialize: initialize,
+    update: update
+  };
+})();
+</script>
