@@ -1,2 +1,6 @@
 # lpt
-RGHACK2015
+
+Getting started
+
+    $ bundle
+    $ rails s Puma
