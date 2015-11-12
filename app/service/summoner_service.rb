@@ -7,7 +7,7 @@ class SummonerService
 
   def search(summoner_name: )
     response = @client.summoners_by_names(summoner_names: summoner_name)[summoner_name]
-    persisted = Summoner.where(region: response['region']).where(summoner_id: response['id']).first
+    persisted = Summoner.where(region: @region.to_s).where(summoner_id: response['id']).first
     persisted = create_summoner(region: @region.to_s, response: response)  if persisted.nil? && response.present?
     persisted
   end
@@ -25,6 +25,7 @@ class SummonerService
 
     summoner.champion_stats << build_champ_stats(summoner_id: response['id'])
     summoner.save
+    summoner
   end
 
   def build_champ_stats(summoner_id:, season: 'SEASON2015')
