@@ -170,9 +170,9 @@ module Champion
     "44" => {"name" => "Taric", "image" => "Taric.png", "tags" => ["hard_cc", "tank", "peel"]},
     "51" => {"name" => "Caitlyn", "image" => "Caitlyn.png", "tags" => ["marksman", "attack_speed", "pusher"]},
     "53" => {"name" => "Blitzcrank", "image" => "Blitzcrank.png", "tags" => ["engage", "support", "hard_cc", "knockup"]},
-    "54" => {"name" => "Malphite", "image" => "Malphite.png", "tags" => ["engage", "knockup", "hard_cc", "tank"]},
+    "54" => {"name" => "Malphite", "image" => "Malphite.png", "tags" => ["engage", "knockup", "hard_cc", "tank", "mana_based"]},
     "254" => {"name" => "Vi", "image" => "Vi.png", "tags" => ["engage", "fighter", "knockup"]},
-    "50" => {"name" => "Swain", "image" => "Swain.png", "tags" => ["dot", "hard_cc", "liandrys"]}
+    "50" => {"name" => "Swain", "image" => "Swain.png", "tags" => ["mage", "mana_based", "dot", "hard_cc", "liandrys"]}
   }
 
   module ClassMethods
@@ -182,6 +182,14 @@ module Champion
 
     def champion_image_for_id(champion_id)
       CHAMPIONS[champion_id]["image"]
+    end
+
+    def champion_tags_for_id(champion_id)
+      CHAMPIONS[champion_id]["tags"]
+    end
+
+    def tags
+      TAGS
     end
   end
 end
