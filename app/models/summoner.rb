@@ -25,7 +25,7 @@ class Summoner < ActiveRecord::Base
   def calculate_metrics
     @stats = self.champion_stats
 
-    most_mastered = ""
+    most_mastered_champ = ""
     most_mastered_image = ""
     most_mastered_points = 0
 
@@ -54,7 +54,7 @@ class Summoner < ActiveRecord::Base
 
       # Most Mastered Champ
       if champ.champion_points > most_mastered_points
-        most_mastered = Summoner.champion_name_for_id(champ.champion_id.to_s)
+        most_mastered_champ = Summoner.champion_name_for_id(champ.champion_id.to_s)
         most_mastered_image = Summoner.champion_image_for_id(champ.champion_id.to_s)
         most_mastered_points = champ.champion_points
       end
@@ -82,11 +82,19 @@ class Summoner < ActiveRecord::Base
 
     end
 
+    most_mastered = {
+      'name' => most_mastered_champ,
+      'image' => most_mastered_image,
+      'mastery_points' => most_mastered_points
+    }
+
     # Extract top champions
-    top_champs = []
-    top_champs.push(all_champs.max_by { |enum, champ| champ['play_rate'] })
-    top_champs.concat(all_champs.max_by(2) { |enum, champ| (champ['games'] >= 5) ? champ['performance'] : -1 })
-    top_champs.map! { |champ| champ[1] }
+    top_champs = {}
+    top_champs['most_practiced'] = (all_champs.max_by { |enum, champ| champ['play_rate'] })[1]
+    top_performance = all_champs.find_all { |enum, champ| champ['games'] >= 5 }
+    top_performance = top_performance.max_by(2) { |enum, champ| champ['performance'] }
+    top_champs['best_performance'] = top_performance[0][1]
+    top_champs['second_best_performance'] = top_performance[1][1]
 
     # Extract recommended champions
     rec_champs = calculate_rec_champs(all_champs)
@@ -128,159 +136,60 @@ class Summoner < ActiveRecord::Base
     underplayed_champs = all_champs.find_all { |enum, champ| champ['games'] <= average_games }
     underplayed_champs = underplayed_champs.find_all { |enum, champ| champ['performance'] >= average_performance }
     underplayed_champs = underplayed_champs.max_by(2) { |enum, champ| champ['performance'] }
-    underplayed_champs.each do |enum, champ|
-      champ['label'] = 'underplayed'
-    end
-    puts "underplayed"
-    puts underplayed_champs
+    underplayed_champs.reverse!
 
     overplayed_champs = all_champs.find_all { |enum, champ| champ['games'] >= average_games }
     overplayed_champs = overplayed_champs.find_all { |enum, champ| champ['performance'] <= average_performance }
-    overplayed_champs = overplayed_champs.min_by(2) { |enum, champ| champ['performance'] }
-    overplayed_champs.each do |enum, champ|
-      champ['label'] = 'overplayed'
-    end
-    puts "overplayed"
-    puts overplayed_champs
+    overplayed_champs = overplayed_champs.min_by(1) { |enum, champ| champ['performance'] }
+    overplayed_champs.reverse!
 
     best_champs = all_champs.find_all { |enum, champ| champ['games'] >= average_games }
     best_champs = best_champs.find_all { |enum, champ| champ['performance'] >= average_performance }
     best_champs = best_champs.max_by(2) { |enum, champ| champ['performance'] }
-    best_champs.each do |enum, champ|
-      champ['label'] = 'best'
-    end
-    puts "best"
-    puts best_champs
+    best_champs.reverse!
 
     fallback_champs = all_champs.find_all { |enum, champ| champ['games'] >= 5 }
     fallback_champs = fallback_champs.max_by(3) { |enum, champ| champ['performance'] }
-    fallback_champs.each do |enum, champ|
-      champ['label'] = 'wellplayed'
-    end
-    puts "wellplayed"
-    puts fallback_champs
+    fallback_champs.reverse!
 
     super_fallback_champs = all_champs.max_by(3) { |enum, champ| champ['performance'] }
+    super_fallback_champs.reverse!
+
     super_fallback_champs.each do |enum, champ|
       champ['label'] = 'new'
     end
-    puts "new"
-    puts super_fallback_champs
+
+    fallback_champs.each do |enum, champ|
+      champ['label'] = 'wellplayed'
+    end
+
+    best_champs.each do |enum, champ|
+      champ['label'] = 'best'
+    end
+
+    overplayed_champs.each do |enum, champ|
+      champ['label'] = 'overplayed'
+    end
+
+    underplayed_champs.each do |enum, champ|
+      champ['label'] = 'underplayed'
+    end
 
     rec_champs = []
-    rec_champs.concat(underplayed_champs)
-
-    case rec_champs.length
-
-    when 0
-      if overplayed_champs.length == 2
-        rec_champs.concat(overplayed_champs.first(2))
-        if best_champs.length > 0
-          rec_champs.push(best_champs.first)
-        elsif fallback_champs.length > 0
-          rec_champs.push(fallback_champs.first)
-        else
-          rec_champs.push(super_fallback_champs.first)
-        end
-      elsif overplayed_champs.length == 1
-        rec_champs.push(overplayed_champs.first)
-        if best_champs.length > 1
-          rec_champs.concat(best_champs.first(2))
-        elsif best_champs.length == 1
-          rec_champs.push(best_champs.first)
-          if fallback_champs.length > 0
-            rec_champs.push(fallback_champs.first)
-          else
-            rec_champs.push(super_fallback_champs.first)
-          end
-        else
-          if fallback_champs.length > 1
-            rec_champs.concat(fallback_champs.first(2))
-          elsif fallback_champs.length == 1
-            rec_champs.push(fallback_champs.first)
-          else
-            rec_champs.concat(super_fallback_champs.first(2))
-          end
-        end
-      elsif overplayed_champs.length == 0
-        if best_champs.length > 2
-          rec_champs.concat(best_champs.first(3))
-        elsif best_champs.length == 2
-          rec_champs.concat(best_champs)
-          if fallback_champs.length > 0
-            rec_champs.push(fallback_champs.first)
-          else
-            rec_champs.push(super_fallback_champs.first)
-          end
-        elsif best_champs.length == 1
-          rec_champs.concat(best_champs)
-          if fallback_champs.length > 1
-            rec_champs.concat(fallback_champs.first(2))
-          elsif fallback_champs.length == 1
-            rec_champs.concat(fallback_champs)
-            rec_champs.push(super_fallback_champs.first)
-          else
-            rec_champs.concat(super_fallback_champs.first(2))
-          end
-        else
-          if fallback_champs.length > 2
-            rec_champs.concat(fallback_champs.first(3))
-          elsif fallback_champs.length == 2
-            rec_champs.concat(fallback_champs)
-            rec_champs.push(super_fallback_champs.first)
-          elsif fallback_champs.length == 1
-            rec_champs.concat(fallback_champs)
-            rec_champs.concat(super_fallback_champs.first(2))
-          else
-            rec_champs.concat(super_fallback_champs.first(3))
-          end
-        end
-      end
-
-    when 1
-      if overplayed_champs.length >= 0
-        rec_champs.concat(overplayed_champs)
-      end
-
-      if rec_champs.length == 2
-        if best_champs.length > 0
-          rec_champs.push(best_champs.first)
-        elsif fallback_champs.length > 0
-          rec_champs.push(fallback_champs.first)
-        else
-          rec_champs.push(super_fallback_champs.first)
-        end
-
-      elsif rec_champs.length == 1
-        if best_champs.length == 2
-          rec_champs.concat(best_champs.first(2))
-        elsif best_champs.length == 1
-          rec_champs.push(best_champs.first)
-          if fallback_champs.length > 0
-            rec_champs.push(fallback_champs.first)
-          else
-            rec_champs.push(super_fallback_champs.first)
-          end
-        elsif best_champs.length == 0
-          if fallback_champs.length >= 2
-            rec_champs.concat(fallback_champs.first(2))
-          elsif fallback_champs.length == 1
-            rec_champs.push(fallback_champs.first)
-            rec_champs.push(super_fallback_champs.first)
-          end
-        end
-      end
-
-    when 2
-      if overplayed_champs.length > 0
-        rec_champs.push(overplayed_champs.first)
+    3.times do |rec|
+      puts underplayed_champs.length
+      if underplayed_champs.length > 0
+        rec_champs.push(underplayed_champs.pop)
+      elsif overplayed_champs.length > 0
+        rec_champs.push(overplayed_champs.pop)
       elsif best_champs.length > 0
-        rec_champs.push(best_champs.first)
-      elsif fallback_champs.length > 0
-        rec_champs.push(fallback_champs.first)
+        rec_champs.push(best_champs.pop)
+      elsif fallback_champs > 0
+        rec_champs.push(fallback_champs.pop)
       else
-        rec_champs.push(super_fallback_champs.first)
+        rec_champs.push(super_fallback_champs.pop)
       end
+      puts rec_champs
     end
 
     rec_champs.map! { |champ| champ[1] }
