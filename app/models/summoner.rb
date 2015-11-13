@@ -388,7 +388,7 @@ class Summoner < ActiveRecord::Base
   end
 
   def division
-    league_info['division']
+    league_info['entries'].first['division']
   end
 
   def league_info
