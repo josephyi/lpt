@@ -103,10 +103,10 @@ class SummonerService
                            kills: participant_stats['kills'],
                            deaths: participant_stats['deaths'],
                            assists: participant_stats['assists'],
-                           wards_placed: participant_stats['wards_placed'],
-                           wards_killed: participant_stats['wards_killed'],
-                           minions_killed: participant_stats['minions_killed'],
-                           neutral_minions_killed: participant_stats['neutral_minions_killed']
+                           wards_placed: participant_stats['wardsPlaced'],
+                           wards_killed: participant_stats['wardsKilled'],
+                           minions_killed: participant_stats['minionsKilled'],
+                           neutral_minions_killed: participant_stats['neutralMinionsKilled']
         )
       end
     end
