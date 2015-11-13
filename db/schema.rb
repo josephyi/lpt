@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151113003719) do
+ActiveRecord::Schema.define(version: 20151113050035) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -84,8 +84,9 @@ ActiveRecord::Schema.define(version: 20151113003719) do
     t.integer  "wards_killed"
     t.integer  "minions_killed"
     t.integer  "neutral_minions_killed"
-    t.datetime "created_at",             null: false
-    t.datetime "updated_at",             null: false
+    t.datetime "created_at",                       null: false
+    t.datetime "updated_at",                       null: false
+    t.integer  "timestamp",              limit: 8
   end
 
   add_index "summoner_match_stats", ["match_response_id"], name: "index_summoner_match_stats_on_match_response_id", using: :btree

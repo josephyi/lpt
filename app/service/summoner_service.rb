@@ -106,7 +106,8 @@ class SummonerService
                            wards_placed: participant_stats['wardsPlaced'],
                            wards_killed: participant_stats['wardsKilled'],
                            minions_killed: participant_stats['minionsKilled'],
-                           neutral_minions_killed: participant_stats['neutralMinionsKilled']
+                           neutral_minions_killed: participant_stats['neutralMinionsKilled'],
+                           timestamp: match_list_item['timestamp']
         )
       end
     end
