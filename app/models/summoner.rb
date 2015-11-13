@@ -12,9 +12,10 @@ class Summoner < ActiveRecord::Base
     response['level'] = self.summoner_level
     response['region'] = self.region
 
-    total_games, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs = self.calculate_metrics
+    total_games, total_stats, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs = self.calculate_metrics
 
     response['total_games'] = total_games
+    response['total_stats'] = total_stats
     response['most_mastered'] = most_mastered
     response['top_champs'] = top_champs
     response['champion_stats'] = all_champs
@@ -24,7 +25,29 @@ class Summoner < ActiveRecord::Base
     response
   end
 
-  def time_series_process(game_list)
+  def time_series_process
+    stats = self.champion_stats
+    games = self.summoner_match_stats
+
+    champ_list = []
+    stats.each do |champ|
+      if champ.champion_id == 0
+        next
+      end
+      champ_list.push(champ.champion_id)
+    end
+
+    champ_time_series = {}
+    champ_list.each do |champ|
+      game_list = games.where(champion_id: champ)
+      time_series = Summoner.calculate_time_series(game_list)
+      champ_time_series[champ] = time_series
+    end
+
+    champ_time_series
+  end
+
+  def calculate_time_series(game_list)
     window_size = 5
     if game_list.length < window_size
       return []
@@ -46,7 +69,7 @@ class Summoner < ActiveRecord::Base
       window_size.times do |piece|
         match = game_list[index + piece]
         champ['games'] += 1
-        champ['wins'] += (match.won == 1 ? 1 : 0)
+        champ['wins'] += (match.winner ? 1 : 0)
         champ['deaths'] += match.deaths
         champ['kills'] += match.kills
         champ['assists'] += match.assists
@@ -56,7 +79,7 @@ class Summoner < ActiveRecord::Base
       total_mastery = 0.0 # unused variable for now
 
       data_point = {
-        'time' => game_list[index + window_size],
+        'time' => game_list[index + window_size].timestamp,
         'performance' => calculate_time_performance(champ)
       }
       time_series.push(data_point)
@@ -84,9 +107,15 @@ class Summoner < ActiveRecord::Base
 
     total_games = 0.0
     total_mastery = 0.0 # placeholder until total mastery points endpoint is integrated
+    total_stats = {}
     @stats.each do |champ|
       if champ.champion_id == 0
-        next
+        total_stats['kills'] = champ.total_champion_kills
+        total_stats['deaths'] = champ.total_deaths_per_session
+        total_stats['assists'] = champ.total_assists
+        total_stats['cs'] = champ.total_minion_kills + champ.total_neutral_minions_killed
+        total_stats['wins'] = champ.total_sessions_won
+        total_stats['losses'] = champ.total_sessions_lost
       else
         total_games += champ.total_sessions_played
         total_mastery += champ.champion_points
@@ -150,7 +179,7 @@ class Summoner < ActiveRecord::Base
     # Assemble player characteristic vector and compare to champs to get new recommended champions
     rec_new_champs = calculate_rec_new_champs(all_champs)
 
-    [total_games, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs]
+    [total_games, total_stats, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs]
   end
 
   def calculate_play_rate(champ, total_games, total_mastery)

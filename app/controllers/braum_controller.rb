@@ -5,7 +5,7 @@ class BraumController < ApplicationController
   end
 
   def process_matches
-    SummonerService.new(region: :na).process_match_list(summoner_id: params[:id])
+    SummonerService.new(region: :na).process_match_list(summoner_id: Summoner.where(name: params[:name]).first.id)
     render :json => true
   end
 end
