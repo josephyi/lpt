@@ -56,7 +56,7 @@ class Summoner < ActiveRecord::Base
     games = self.summoner_match_stats
     top = games.where(lane: 'TOP')
     jungle = games.where(lane: 'JUNGLE')
-    mid = games.where(lane: 'MIDDLE')
+    mid = games.where(lane: 'MID')
     adc = games.where(role: 'DUO_CARRY')
     support = games.where(role: 'DUO_SUPPORT')
 
