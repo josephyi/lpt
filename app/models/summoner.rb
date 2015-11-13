@@ -189,7 +189,7 @@ class Summoner < ActiveRecord::Base
         rec_champs.push(overplayed_champs.pop)
       elsif best_champs.length > 0
         rec_champs.push(best_champs.pop)
-      elsif fallback_champs > 0
+      elsif fallback_champs.length > 0
         rec_champs.push(fallback_champs.pop)
       else
         rec_champs.push(super_fallback_champs.pop)
