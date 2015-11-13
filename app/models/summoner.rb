@@ -50,6 +50,15 @@ class Summoner < ActiveRecord::Base
     champ_time_series
   end
 
+  def fun_stats
+    games = self.summoner_match_stats
+    adc = games.where(lane: 'DUO_CARRY')
+    support = games.where(lane: 'DUO_SUPPORT')
+    mid = games.where(lane: 'MIDDLE')
+    jungle = games.where(lane: )
+    top = games.where(lane: )
+  end
+
   def calculate_time_series(game_list)
     window_size = 5
     if game_list.length < window_size
