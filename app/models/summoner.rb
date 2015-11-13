@@ -24,6 +24,15 @@ class Summoner < ActiveRecord::Base
     response
   end
 
+  def time_series_process(game_list)
+    window_size = 5
+    if game_list.length < window_size
+      return []
+    end
+
+    []
+  end
+
   def calculate_metrics
     @stats = self.champion_stats
 
