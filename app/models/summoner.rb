@@ -30,7 +30,39 @@ class Summoner < ActiveRecord::Base
       return []
     end
 
-    []
+    time_series = []
+    game_list.each_with_index do |game, index|
+      if (index + window_size) >= game_list.length
+        break
+      end
+
+      champ = {
+        'games' => 0,
+        'wins' => 0,
+        'deaths' => 0,
+        'kills' => 0,
+        'assists' => 0
+      }
+      window_size.times do |piece|
+        match = game_list[index + piece]
+        champ['games'] += 1
+        champ['wins'] += (match.won == 1 ? 1 : 0)
+        champ['deaths'] += match.deaths
+        champ['kills'] += match.kills
+        champ['assists'] += match.assists
+      end
+
+      total_games = window_size
+      total_mastery = 0.0 # unused variable for now
+
+      data_point = {
+        'time' => game_list[index + window_size],
+        'performance' => calculate_time_performance(champ)
+      }
+      time_series.push(data_point)
+    end
+
+    time_series
   end
 
   def calculate_metrics
@@ -136,6 +168,17 @@ class Summoner < ActiveRecord::Base
       kda_performance = (champ.total_champion_kills + (champ.total_assists / 2.0)) / 0.1
     end
 
+    performance = game_performance * kda_performance
+  end
+
+  # yes this should be consolidated with calculate_performance.  no it is not.
+  def calculate_time_performance(champ)
+    game_performance = champ['wins'].to_f / champ['games']
+    if champ['deaths'] > 0
+      kda_performance = (champ['kills'] + (champ['assists'] / 2.0)) / champ['deaths']
+    else
+      kda_performace = (champ['kills'] + (champ['assists'] / 2.0)) / champ['deaths']
+    end
     performance = game_performance * kda_performance
   end
 
