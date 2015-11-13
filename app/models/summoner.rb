@@ -11,7 +11,8 @@ class Summoner < ActiveRecord::Base
     response['icon'] = self.profile_icon_id
     response['level'] = self.summoner_level
     response['region'] = self.region
-
+    response['tier'] = tier
+    response['division'] = division
     total_games, total_stats, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs = self.calculate_metrics
 
     response['total_games'] = total_games
@@ -380,5 +381,19 @@ class Summoner < ActiveRecord::Base
     end
 
     labels
+  end
+
+  def tier
+    league_info['tier']
+  end
+
+  def division
+    league_info['division']
+  end
+
+  def league_info
+    @response ||= Taric.client(region: :na).league_entries_by_summoner_ids(summoner_ids: summoner_id)[summoner_id.to_s]
+    index_of_solo_queue = @response.index{|h| h['queue'] == 'RANKED_SOLO_5x5'}
+    @response[index_of_solo_queue]
   end
 end
