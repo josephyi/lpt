@@ -2,6 +2,7 @@ module Champion
   extend ActiveSupport::Concern
 
   TAGS = {
+    "poke" => "Because you fancy yourself a sniper",
     "juggernaut" => "Because you're the juggernaut, bitch",
     "mage" => "Because you seem to like shiny particles",
     "fighter" => "Because fisticuffs",
@@ -189,7 +190,11 @@ module Champion
     end
 
     def tags
-      TAGS
+      TAGS.keys
+    end
+
+    def tag_phrase_for_tag(tag)
+      TAGS[tag]
     end
 
     def champions

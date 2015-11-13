@@ -287,16 +287,12 @@ class Summoner < ActiveRecord::Base
       if vectmax[0] > 0
         i = vectmax[1]
 
-        labels.push(ref[i])
+        labels.push(Summoner.tag_phrase_for_tag(ref[i]))
 
         vector[i] = 0
       else
         break
       end
-    end
-
-    labels.each do |label|
-      label = Summoner.tag_phrase_for_tag(label)
     end
 
     labels
