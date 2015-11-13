@@ -21,6 +21,7 @@ class Summoner < ActiveRecord::Base
     response['champion_stats'] = all_champs
     response['rec_champs'] = rec_champs
     response['rec_new_champs'] = rec_new_champs
+    response['timeseries'] = self.time_series_process
 
     response
   end
@@ -28,6 +29,7 @@ class Summoner < ActiveRecord::Base
   def time_series_process
     stats = self.champion_stats
     games = self.summoner_match_stats
+    games.order(:timestamp)
 
     champ_list = []
     stats.each do |champ|
@@ -40,7 +42,7 @@ class Summoner < ActiveRecord::Base
     champ_time_series = {}
     champ_list.each do |champ|
       game_list = games.where(champion_id: champ)
-      time_series = Summoner.calculate_time_series(game_list)
+      time_series = self.calculate_time_series(game_list)
       champ_time_series[champ] = time_series
     end
 
@@ -79,8 +81,8 @@ class Summoner < ActiveRecord::Base
       total_mastery = 0.0 # unused variable for now
 
       data_point = {
-        'time' => game_list[index + window_size].timestamp,
-        'performance' => calculate_time_performance(champ)
+        'x' => game_list[index + window_size].timestamp,
+        'y' => calculate_time_performance(champ)
       }
       time_series.push(data_point)
     end
