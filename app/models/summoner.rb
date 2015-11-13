@@ -224,7 +224,11 @@ class Summoner < ActiveRecord::Base
     top_performance = all_champs.find_all { |enum, champ| champ['games'] >= 5 }
     top_performance = top_performance.max_by(2) { |enum, champ| champ['performance'] }
     top_champs['best_performance'] = top_performance[0][1]
-    top_champs['second_best_performance'] = top_performance[1][1]
+    if top_performance.length > 1
+      top_champs['second_best_performance'] = top_performance[1][1]
+    else
+      top_champs['second_best_performance'] = top_champs['most_practiced']
+    end
 
     # Extract recommended champions
     rec_champs = calculate_rec_champs(all_champs)
