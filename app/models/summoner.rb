@@ -13,6 +13,7 @@ class Summoner < ActiveRecord::Base
     response['region'] = self.region
     response['tier'] = tier
     response['division'] = division
+
     total_games, total_stats, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs = self.calculate_metrics
 
     response['total_games'] = total_games
@@ -23,6 +24,7 @@ class Summoner < ActiveRecord::Base
     response['rec_champs'] = rec_champs
     response['rec_new_champs'] = rec_new_champs
     response['timeseries'] = self.time_series_process
+    response['fun_stats'] = self.fun_stats
 
     response
   end
@@ -52,11 +54,45 @@ class Summoner < ActiveRecord::Base
 
   def fun_stats
     games = self.summoner_match_stats
-    adc = games.where(lane: 'DUO_CARRY')
-    support = games.where(lane: 'DUO_SUPPORT')
+    top = games.where(lane: 'TOP')
+    jungle = games.where(lane: 'JUNGLE')
     mid = games.where(lane: 'MIDDLE')
-    jungle = games.where(lane: )
-    top = games.where(lane: )
+    adc = games.where(role: 'DUO_CARRY')
+    support = games.where(role: 'DUO_SUPPORT')
+
+    top_feeds = 0
+    jungle_tax = 0
+    mid_assists = 0
+    adc_wards = 0
+    support_steals = 0
+
+    top.each do |game|
+      top_feeds += game.deaths
+    end
+
+    jungle.each do |game|
+      jungle_tax += game.minions_killed
+    end
+
+    mid.each do |game|
+      mid_assists += game.assists
+    end
+
+    adc.each do |game|
+      adc_wards += game.wards_placed
+    end
+
+    support.each do |game|
+      support_steals += game.kills
+    end
+
+    fun_stats = {
+      "top" => top_feeds,
+      "jungle" => jungle_tax,
+      "mid" => mid_assists,
+      "adc" => adc_wards,
+      "support" => support_steals
+    }
   end
 
   def calculate_time_series(game_list)
