@@ -11,8 +11,9 @@ class Summoner < ActiveRecord::Base
     response['level'] = self.summoner_level
     response['region'] = self.region
 
-    most_mastered, top_champs, rec_champs, rec_new_champs, all_champs = self.calculate_metrics
+    total_games, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs = self.calculate_metrics
 
+    response['total_games'] = total_games
     response['most_mastered'] = most_mastered
     response['top_champs'] = top_champs
     response['champion_stats'] = all_champs
@@ -49,8 +50,6 @@ class Summoner < ActiveRecord::Base
         total_mastery += champ.champion_points
       end
     end
-    puts "total games"
-    puts total_games
 
     # Loop only once!
     @stats.each do |champ|
@@ -109,7 +108,7 @@ class Summoner < ActiveRecord::Base
     # Assemble player characteristic vector and compare to champs to get new recommended champions
     rec_new_champs = calculate_rec_new_champs(all_champs)
 
-    [most_mastered, top_champs, rec_champs, rec_new_champs, all_champs]
+    [total_games, most_mastered, top_champs, rec_champs, rec_new_champs, all_champs]
   end
 
   def calculate_play_rate(champ, total_games, total_mastery)
@@ -184,7 +183,6 @@ class Summoner < ActiveRecord::Base
 
     rec_champs = []
     3.times do |rec|
-      puts underplayed_champs.length
       if underplayed_champs.length > 0
         rec_champs.push(underplayed_champs.pop)
       elsif overplayed_champs.length > 0
@@ -196,7 +194,6 @@ class Summoner < ActiveRecord::Base
       else
         rec_champs.push(super_fallback_champs.pop)
       end
-      puts rec_champs
     end
 
     rec_champs.map! { |champ| champ[1] }
@@ -205,16 +202,16 @@ class Summoner < ActiveRecord::Base
 
   def calculate_rec_new_champs(all_champs)
     # Characterize the player
-    tags = ['hi', 'bye']
-    champions = ['1', '2']
+    tags = Summoner.tags
+    champions = Summoner.champions
     player = Array.new(tags.length, 0.0)
-    player_champions = []
+    player_champions = Array.new(all_champs.length, 0.0)
 
     all_champs.each do |enum, champ|
-      player_champions.push(champ.champion_id.to_s)
-      champ_tags = self.champion_tags_by_id(champ.champion_id.to_s)
+      player_champions.push(champ['id'].to_s)
+      champ_tags = Summoner.champion_tags_for_id(champ['id'].to_s)
       champ_tags.each do |tag|
-        player[tags.index(tag)] += champ.games
+        player[tags.index(tag)] += champ['games']
       end
     end
 
@@ -223,8 +220,9 @@ class Summoner < ActiveRecord::Base
     # Compare to champions they don't own
     champ_similarities = []
     champions.each do |champ|
+      champ_tag_vector = Array.new(tags.length, 0.0)
       if !player_champions.include?(champ)
-        champ_tags = self.champion_tags_by_id(champ)
+        champ_tags = Summoner.champion_tags_for_id(champ)
         champ_tags.each do |tag|
           champ_tag_vector[tags.index(tag)] += 1
         end
@@ -236,15 +234,15 @@ class Summoner < ActiveRecord::Base
       end
     end
 
-    recs = champ_similarities.max_by(3) { |enum, champ| champ[1] }
+    recs = champ_similarities.max_by(3) { |champ| champ[1] }
 
     rec_new_champs = []
     recs.each do |rec|
       rec_champ = {
         'id' => rec[0],
         'similarity' => rec[1],
-        'name' => self.champion_name_by_id(rec[0]),
-        'image' => self.champion_image_by_id(rec[1]),
+        'name' => Summoner.champion_name_for_id(rec[0]),
+        'image' => Summoner.champion_image_for_id(rec[0]),
         'labels' => rec[2]
       }
       rec_new_champs.push(rec_champ)
@@ -277,7 +275,7 @@ class Summoner < ActiveRecord::Base
   end
 
   def label_vector(ref, vect)
-    label_count = 3
+    label_count = 2
 
     # Protect the input vector
     vector = vect.dup
@@ -295,6 +293,10 @@ class Summoner < ActiveRecord::Base
       else
         break
       end
+    end
+
+    labels.each do |label|
+      label = Summoner.tag_phrase_for_tag(label)
     end
 
     labels
