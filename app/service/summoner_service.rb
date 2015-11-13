@@ -7,12 +7,8 @@ class SummonerService
 
   def search(summoner_name: )
     summoner = find_or_create_summoner(summoner_name: summoner_name, region: @region.to_s)
-    process_match_list(summoner_id: summoner.id)
-
     summoner
   end
-
-  private
 
   def create_summoner(region: , response: )
     summoner = Summoner.new(region: region,
@@ -65,27 +61,56 @@ class SummonerService
       match_list_response.response = @client.match_list(ranked_queues: 'RANKED_SOLO_5x5', seasons: 'SEASON2015', summoner_id: summoner.summoner_id)
     end
 
-    # match_ids = match_list_response.response['matches'].map{|m| m['matchId']}
-    # persisted_match_ids = MatchResponse.where(match_id: match_ids).pluck(:match_id)
-    # diff_ids = match_ids - persisted_match_ids
-    #
-    # retry_ids = []
-    # if diff_ids.present?
-    #   diff_ids.each do |id|
-    #     MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue retry_ids << id
-    #   end
-    #
-    #   retry_ids.each do |id|
-    #     MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue Rails.logger.info "******** #{id}"
-    #   end
-    # end
-    #
-    # match_list_response.response['matches'].each do |match|
-    #
-    # end
+    process_matches(summoner: summoner)
   end
 
+  def process_matches(summoner: )
+    match_list_response = MatchListResponse.where(summoner_id: summoner.id).first
+    match_ids = match_list_response.response['matches'].map{|m| m['matchId']}
+    persisted_match_ids = MatchResponse.where(match_id: match_ids).pluck(:match_id)
+    diff_ids = match_ids - persisted_match_ids
 
+    retry_ids = []
+    if diff_ids.present?
+      diff_ids.each do |id|
+        MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue retry_ids << id
+      end
+
+      retry_ids.each do |id|
+        MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue Rails.logger.info "******** #{id}"
+      end
+    end
+
+    SummonerMatchStat.where(summoner: summoner).delete_all # wipe and re-process for now
+
+    match_list_response.response['matches'].each do |match_list_item|
+      match_response = MatchResponse.where(match_id: match_list_item['matchId']).first
+
+      if match_response.present?
+        participant_index = self.class.participant_identity_index(match_response: match_response, lol_summoner_id: summoner.summoner_id)
+        team_id = self.class.team_id_for_summoner(match_response: match_response, lol_summoner_id: summoner.summoner_id)
+        participant_stats = match_response.response['participants'][participant_index]['stats']
+
+        SummonerMatchStat.create(
+                           summoner: summoner,
+                           match_response: match_response,
+                           champion_id: match_list_item['champion'],
+                           role: match_list_item['role'],
+                           lane: match_list_item['lane'],
+                           winner: participant_stats['winner'],
+                           team_id: team_id,
+                           participant_index: participant_index,
+                           kills: participant_stats['kills'],
+                           deaths: participant_stats['deaths'],
+                           assists: participant_stats['assists'],
+                           wards_placed: participant_stats['wards_placed'],
+                           wards_killed: participant_stats['wards_killed'],
+                           minions_killed: participant_stats['minions_killed'],
+                           neutral_minions_killed: participant_stats['neutral_minions_killed']
+        )
+      end
+    end
+  end
 
   def self.participant_identity_index(match_response:, lol_summoner_id: )
     match_response.response['participantIdentities'].index{|h| h['player']['summonerId'] == lol_summoner_id}
