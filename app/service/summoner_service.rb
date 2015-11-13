@@ -6,8 +6,7 @@ class SummonerService
   end
 
   def search(summoner_name: )
-    summoner = find_or_create_summoner(summoner_name: summoner_name, region: @region.to_s)
-    summoner
+    find_or_create_summoner(summoner_name: summoner_name.gsub(' ', '').downcase, region: @region.to_s)
   end
 
   def create_summoner(region: , response: )
