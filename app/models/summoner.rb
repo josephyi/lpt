@@ -88,10 +88,15 @@ class Summoner < ActiveRecord::Base
 
     fun_stats = {
       "top" => top_feeds,
+      "top_per_game" => top_feeds.to_f / top.length,
       "jungle" => jungle_tax,
+      "jungle_per_game" => jungle_tax.to_f / jungle.length,
       "mid" => mid_assists,
+      "mid_per_game" => mid_assists.to_f / mid.length,
       "adc" => adc_wards,
-      "support" => support_steals
+      "adc_per_game" => adc_wards.to_f / adc.length,
+      "support" => support_steals,
+      "support_per_game" => support_steals.to_f / support.length
     }
   end
 
