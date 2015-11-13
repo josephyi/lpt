@@ -60,24 +60,38 @@ class SummonerService
   end
 
   def process_match_list(summoner_id:)
+    summoner = Summoner.find(summoner_id)
     match_list_response = MatchListResponse.find_or_create_by(summoner_id: summoner_id) do |match_list_response|
-      match_list_response.response = @client.match_list(ranked_queues: 'RANKED_SOLO_5x5', seasons: 'SEASON2015', summoner_id: Summoner.find(summoner_id).summoner_id)
+      match_list_response.response = @client.match_list(ranked_queues: 'RANKED_SOLO_5x5', seasons: 'SEASON2015', summoner_id: summoner.summoner_id)
     end
 
-    match_ids = match_list_response.response['matches'].map{|m| m['matchId']}
-    persisted_match_ids = MatchResponse.where(match_id: match_ids).pluck(:match_id)
-    diff_ids = match_ids - persisted_match_ids
+    # match_ids = match_list_response.response['matches'].map{|m| m['matchId']}
+    # persisted_match_ids = MatchResponse.where(match_id: match_ids).pluck(:match_id)
+    # diff_ids = match_ids - persisted_match_ids
+    #
+    # retry_ids = []
+    # if diff_ids.present?
+    #   diff_ids.each do |id|
+    #     MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue retry_ids << id
+    #   end
+    #
+    #   retry_ids.each do |id|
+    #     MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue Rails.logger.info "******** #{id}"
+    #   end
+    # end
+    #
+    # match_list_response.response['matches'].each do |match|
+    #
+    # end
+  end
 
-    retry_ids = []
-    if diff_ids.present?
-      diff_ids.each do |id|
-        MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue retry_ids << id
-      end
 
-      retry_ids.each do |id|
-        MatchResponse.create(match_id: id, response: @client.match(id: id)) rescue Rails.logger.info "******** #{id}"
-      end
-    end
 
+  def self.participant_identity_index(match_response:, lol_summoner_id: )
+    match_response.response['participantIdentities'].index{|h| h['player']['summonerId'] == lol_summoner_id}
+  end
+
+  def self.team_id_for_summoner(match_response:, lol_summoner_id: )
+    match_response.response['participants'][participant_identity_index(match_response: match_response, lol_summoner_id: lol_summoner_id)]['teamId']
   end
 end
