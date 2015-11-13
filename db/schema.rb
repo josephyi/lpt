@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151112182123) do
+ActiveRecord::Schema.define(version: 20151113003719) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -68,6 +68,29 @@ ActiveRecord::Schema.define(version: 20151112182123) do
   add_index "match_responses", ["match_id"], name: "index_match_responses_on_match_id", using: :btree
   add_index "match_responses", ["response"], name: "index_match_responses_on_response", using: :gin
 
+  create_table "summoner_match_stats", force: :cascade do |t|
+    t.integer  "summoner_id"
+    t.integer  "match_response_id"
+    t.integer  "champion_id"
+    t.string   "role"
+    t.string   "lane"
+    t.boolean  "winner"
+    t.integer  "team_id"
+    t.integer  "participant_index"
+    t.integer  "kills"
+    t.integer  "deaths"
+    t.integer  "assists"
+    t.integer  "wards_placed"
+    t.integer  "wards_killed"
+    t.integer  "minions_killed"
+    t.integer  "neutral_minions_killed"
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+  end
+
+  add_index "summoner_match_stats", ["match_response_id"], name: "index_summoner_match_stats_on_match_response_id", using: :btree
+  add_index "summoner_match_stats", ["summoner_id"], name: "index_summoner_match_stats_on_summoner_id", using: :btree
+
   create_table "summoners", force: :cascade do |t|
     t.integer  "summoner_id"
     t.string   "name"
@@ -79,4 +102,6 @@ ActiveRecord::Schema.define(version: 20151112182123) do
     t.integer  "revision_date",   limit: 8
   end
 
+  add_foreign_key "summoner_match_stats", "match_responses"
+  add_foreign_key "summoner_match_stats", "summoners"
 end
